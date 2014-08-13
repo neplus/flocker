@@ -223,8 +223,15 @@ class SetProxies(object):
         return DeferredList(results, fireOnOneErrback=True, consumeErrors=True)
 
     def _log_failure(self, failure):
+        """
+        Log and return the supplied failure.
+
+        :param Failure failure: The ``Failure`` to be logged.
+        :returns: The supplied ``Failure``.
+        """
         log.err(failure)
         return failure
+
 
 class Deployer(object):
     """

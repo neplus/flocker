@@ -12,6 +12,7 @@ from zope.interface import implementer
 from twisted.internet.defer import fail, FirstError, succeed, Deferred
 from twisted.trial.unittest import SynchronousTestCase
 from twisted.python.filepath import FilePath
+from twisted.python import log
 
 from .. import (Deployer, Application, DockerImage, Deployment, Node,
                 Port, NodeState, SSH_PRIVATE_KEY_PATH)
@@ -1268,6 +1269,34 @@ class SetProxiesTests(SynchronousTestCase):
             ZeroDivisionError
         )
 
+    def test_delete_proxy_errors_logged(self):
+        """
+        Exceptions raised in `delete_proxy` operations are *all* logged.
+        """
+        fake_network = make_memory_network()
+        fake_network.create_proxy_to(ip=u'192.0.2.100', port=3306)
+        fake_network.create_proxy_to(ip=u'192.0.2.101', port=8080)
+
+        class ExpectedError(Exception):
+            pass
+        expected_exceptions = [ExpectedError(), ExpectedError()]
+        expected_exceptions_iterator = iter(expected_exceptions)
+
+        def fake_delete_proxy(proxy):
+            raise expected_exceptions_iterator.next()
+        self.patch(fake_network, 'delete_proxy', fake_delete_proxy)
+
+        api = Deployer(
+            create_volume_service(self), gear_client=FakeGearClient(),
+            network=fake_network)
+
+        d = SetProxies(ports=[]).run(api)
+        self.failureResultOf(d, FirstError)
+        self.assertEqual(
+            expected_exceptions,
+            [failure.value for failure in self.flushLoggedErrors(ExpectedError)]
+        )
+
     def test_create_proxy_errors_as_errbacks(self):
         """
         Exceptions raised in `create_proxy_to` operations are reported as
@@ -1285,6 +1314,35 @@ class SetProxiesTests(SynchronousTestCase):
         self.assertIsInstance(
             exception.value.subFailure.value,
             ZeroDivisionError
+        )
+
+    def test_create_proxy_errors_logged(self):
+        """
+        Exceptions raised in `create_proxy_to` operations are *all* logged.
+        """
+        fake_network = make_memory_network()
+        class ExpectedError(Exception):
+            pass
+        expected_exceptions = [ExpectedError(), ExpectedError()]
+        expected_exceptions_iterator = iter(expected_exceptions)
+
+        def fake_create_proxy(ip, port):
+            raise expected_exceptions_iterator.next()
+        self.patch(fake_network, 'create_proxy_to', fake_create_proxy)
+
+        api = Deployer(
+            create_volume_service(self), gear_client=FakeGearClient(),
+            network=fake_network)
+
+        d = SetProxies(
+            ports=[
+                Proxy(ip=u'192.0.2.100', port=3306),
+                Proxy(ip=u'192.0.2.101', port=8080)
+            ]).run(api)
+        self.failureResultOf(d, FirstError)
+        self.assertEqual(
+            expected_exceptions,
+            [failure.value for failure in self.flushLoggedErrors(ExpectedError)]
         )
 
 

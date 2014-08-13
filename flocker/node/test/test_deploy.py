@@ -1268,6 +1268,7 @@ class SetProxiesTests(SynchronousTestCase):
             exception.value.subFailure.value,
             ZeroDivisionError
         )
+        self.flushLoggedErrors(ZeroDivisionError)
 
     def test_delete_proxy_errors_logged(self):
         """
@@ -1315,6 +1316,7 @@ class SetProxiesTests(SynchronousTestCase):
             exception.value.subFailure.value,
             ZeroDivisionError
         )
+        self.flushLoggedErrors(ZeroDivisionError)
 
     def test_create_proxy_errors_logged(self):
         """

@@ -12,7 +12,6 @@ from zope.interface import implementer
 from twisted.internet.defer import fail, FirstError, succeed, Deferred
 from twisted.trial.unittest import SynchronousTestCase
 from twisted.python.filepath import FilePath
-from twisted.python import log
 
 from .. import (Deployer, Application, DockerImage, Deployment, Node,
                 Port, NodeState, SSH_PRIVATE_KEY_PATH)
@@ -1184,6 +1183,12 @@ class DeployerCalculateNecessaryStateChangesTests(SynchronousTestCase):
         self.assertEqual(expected, changes)
 
 
+class ExpectedError(Exception):
+    """
+    A known exception raised from failure tests.
+    """
+
+
 class SetProxiesTests(SynchronousTestCase):
     """
     Tests for ``SetProxies``.
@@ -1278,8 +1283,6 @@ class SetProxiesTests(SynchronousTestCase):
         fake_network.create_proxy_to(ip=u'192.0.2.100', port=3306)
         fake_network.create_proxy_to(ip=u'192.0.2.101', port=8080)
 
-        class ExpectedError(Exception):
-            pass
         expected_exceptions = [ExpectedError(), ExpectedError()]
         expected_exceptions_iterator = iter(expected_exceptions)
 
@@ -1295,7 +1298,8 @@ class SetProxiesTests(SynchronousTestCase):
         self.failureResultOf(d, FirstError)
         self.assertEqual(
             expected_exceptions,
-            [failure.value for failure in self.flushLoggedErrors(ExpectedError)]
+            [failure.value for failure
+             in self.flushLoggedErrors(ExpectedError)]
         )
 
     def test_create_proxy_errors_as_errbacks(self):
@@ -1323,8 +1327,6 @@ class SetProxiesTests(SynchronousTestCase):
         Exceptions raised in `create_proxy_to` operations are *all* logged.
         """
         fake_network = make_memory_network()
-        class ExpectedError(Exception):
-            pass
         expected_exceptions = [ExpectedError(), ExpectedError()]
         expected_exceptions_iterator = iter(expected_exceptions)
 
@@ -1344,7 +1346,8 @@ class SetProxiesTests(SynchronousTestCase):
         self.failureResultOf(d, FirstError)
         self.assertEqual(
             expected_exceptions,
-            [failure.value for failure in self.flushLoggedErrors(ExpectedError)]
+            [failure.value for failure
+             in self.flushLoggedErrors(ExpectedError)]
         )
 
 
